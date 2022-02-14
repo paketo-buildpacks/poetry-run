@@ -10,8 +10,6 @@ import (
 func TestUnitPoetryRun(t *testing.T) {
 	suite := spec.New("poetryrun", spec.Report(report.Terminal{}))
 	suite("Detect", testDetect)
-	// suite("Build", testBuild)
-	// suite("InstallProcess", testInstallProcess)
-	// suite("SiteProcess", testSiteProcess)
+	suite("Build", testBuild)
 	suite.Run(t)
 }
