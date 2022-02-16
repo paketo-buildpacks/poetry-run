@@ -1,13 +1,14 @@
 package poetryrun_test
 
 import (
+	"fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/paketo-buildpacks/packit"
 	poetryrun "github.com/paketo-buildpacks/poetry-run"
+	"github.com/paketo-buildpacks/poetry-run/fakes"
 	"github.com/sclevine/spec"
 
 	. "github.com/onsi/gomega"
@@ -15,8 +16,11 @@ import (
 
 func testDetect(t *testing.T, context spec.G, it spec.S) {
 	var (
-		Expect     = NewWithT(t).Expect
-		detect     packit.DetectFunc
+		Expect = NewWithT(t).Expect
+		detect packit.DetectFunc
+
+		pyProjectParser *fakes.PyProjectParser
+
 		workingDir string
 	)
 
@@ -25,14 +29,12 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 		workingDir, err = ioutil.TempDir("", "working-dir")
 		Expect(err).NotTo(HaveOccurred())
 
-		contents := `
-[tool.poetry.scripts]
-my-script = "my_module:main"
-`
+		Expect(ioutil.WriteFile(filepath.Join(workingDir, "pyproject.toml"), []byte("some contents"), 0644)).To(Succeed())
 
-		Expect(ioutil.WriteFile(filepath.Join(workingDir, "pyproject.toml"), []byte(contents), 0644)).To(Succeed())
+		pyProjectParser = &fakes.PyProjectParser{}
+		pyProjectParser.ParseCall.Returns.String = "some-script"
 
-		detect = poetryrun.Detect()
+		detect = poetryrun.Detect(pyProjectParser)
 	})
 
 	context("detection", func() {
@@ -48,88 +50,52 @@ my-script = "my_module:main"
 					{
 						Name: poetryrun.CPython,
 						Metadata: poetryrun.BuildPlanMetadata{
-							Build: true,
+							Launch: true,
 						},
 					},
 					{
 						Name: poetryrun.Poetry,
 						Metadata: poetryrun.BuildPlanMetadata{
-							Build: true,
+							Launch: true,
 						},
 					},
 					{
 						Name: poetryrun.PoetryVenv,
 						Metadata: poetryrun.BuildPlanMetadata{
-							Build: true,
+							Launch: true,
 						},
 					},
 				},
 			}))
+
+			Expect(pyProjectParser.ParseCall.Receives.String).To(Equal(filepath.Join(workingDir, "pyproject.toml")))
 		})
 
-		context("when there is no pyproject.toml file", func() {
+		context("when there is no script returned by the paser", func() {
 			it.Before(func() {
-				Expect(os.Remove(filepath.Join(workingDir, "pyproject.toml"))).To(Succeed())
+				pyProjectParser.ParseCall.Returns.String = ""
 			})
 
 			it("fails detection", func() {
 				_, err := detect(packit.DetectContext{
 					WorkingDir: workingDir,
 				})
-				Expect(err).To(MatchError(packit.Fail))
-			})
-		})
 
-		context("when there are no poetry scripts in the pyproject.toml file", func() {
-			it.Before(func() {
-				Expect(os.Remove(filepath.Join(workingDir, "pyproject.toml"))).To(Succeed())
-				contents := `
-[some.other.valid.toml]
-a-key = "a value"`
-				Expect(ioutil.WriteFile(filepath.Join(workingDir, "pyproject.toml"), []byte(contents), 0644)).To(Succeed())
-			})
-
-			it("fails detection", func() {
-				_, err := detect(packit.DetectContext{
-					WorkingDir: workingDir,
-				})
 				Expect(err).To(MatchError(packit.Fail))
 			})
 		})
 
 		context("failure cases", func() {
-			context("when the pyproject.toml cannot be read", func() {
+			context("when the pyproject.toml parser returns an error", func() {
 				it.Before(func() {
-					Expect(os.Chmod(workingDir, 0000)).To(Succeed())
+					pyProjectParser.ParseCall.Returns.Error = fmt.Errorf("some error")
 				})
 
-				it.After(func() {
-					Expect(os.Chmod(workingDir, os.ModePerm)).To(Succeed())
-				})
-
-				it("returns an error", func() {
+				it("returns the error", func() {
 					_, err := detect(packit.DetectContext{
 						WorkingDir: workingDir,
 					})
-					Expect(err).To(MatchError(ContainSubstring("permission denied")))
-				})
-			})
-
-			context("when the pyproject.toml does not contain the expected TOML structure", func() {
-				it.Before(func() {
-					Expect(os.Remove(filepath.Join(workingDir, "pyproject.toml"))).To(Succeed())
-					contents := `
-[tool.poetry.scripts]
-a-key = [ "a value", "another value"]`
-
-					Expect(ioutil.WriteFile(filepath.Join(workingDir, "pyproject.toml"), []byte(contents), 0644)).To(Succeed())
-				})
-
-				it("returns an error", func() {
-					_, err := detect(packit.DetectContext{
-						WorkingDir: workingDir,
-					})
-					Expect(err).To(MatchError(ContainSubstring("incompatible types: TOML")))
+					Expect(err).To(MatchError(ContainSubstring("some error")))
 				})
 			})
 		})

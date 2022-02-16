@@ -2,12 +2,14 @@ package poetryrun_test
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"testing"
 
 	"github.com/paketo-buildpacks/packit"
 	"github.com/paketo-buildpacks/packit/scribe"
 	poetryrun "github.com/paketo-buildpacks/poetry-run"
+	"github.com/paketo-buildpacks/poetry-run/fakes"
 	"github.com/sclevine/spec"
 
 	. "github.com/onsi/gomega"
@@ -21,6 +23,8 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		workingDir string
 		cnbDir     string
 		buffer     *bytes.Buffer
+
+		pyProjectParser *fakes.PyProjectParser
 
 		build packit.BuildFunc
 	)
@@ -37,9 +41,12 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		Expect(err).NotTo(HaveOccurred())
 
 		buffer = bytes.NewBuffer(nil)
-		logger := scribe.NewLogger(buffer)
+		logger := scribe.NewEmitter(buffer)
 
-		build = poetryrun.Build(logger)
+		pyProjectParser = &fakes.PyProjectParser{}
+		pyProjectParser.ParseCall.Returns.String = "some-script"
+
+		build = poetryrun.Build(pyProjectParser, logger)
 	})
 
 	it.After(func() {
@@ -73,16 +80,37 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 				Processes: []packit.Process{
 					{
 						Type:    "web",
-						Command: "poetry run",
+						Command: "poetry run some-script",
 						Default: true,
 					},
 				},
 			},
 		}))
+	})
 
-		Expect(buffer.String()).To(ContainSubstring("Some Buildpack some-version"))
-		Expect(buffer.String()).To(ContainSubstring("Assigning launch process"))
-		Expect(buffer.String()).To(ContainSubstring("web: poetry run"))
+	context("failure cases", func() {
+		context("when the pyproject.toml parser returns an error", func() {
+			it.Before(func() {
+				pyProjectParser.ParseCall.Returns.Error = fmt.Errorf("some error")
+			})
+
+			it("returns the error", func() {
+				_, err := build(packit.BuildContext{
+					WorkingDir: workingDir,
+					CNBPath:    cnbDir,
+					Stack:      "some-stack",
+					BuildpackInfo: packit.BuildpackInfo{
+						Name:    "Some Buildpack",
+						Version: "some-version",
+					},
+					Plan: packit.BuildpackPlan{
+						Entries: []packit.BuildpackPlanEntry{},
+					},
+					Layers: packit.Layers{Path: layersDir},
+				})
+				Expect(err).To(MatchError(ContainSubstring("some error")))
+			})
+		})
 	})
 
 }

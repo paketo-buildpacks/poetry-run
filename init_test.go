@@ -11,5 +11,6 @@ func TestUnitPoetryRun(t *testing.T) {
 	suite := spec.New("poetryrun", spec.Report(report.Terminal{}))
 	suite("Detect", testDetect)
 	suite("Build", testBuild)
+	suite("PyProjectConfigParser", testPyProjectConfigParser)
 	suite.Run(t)
 }
