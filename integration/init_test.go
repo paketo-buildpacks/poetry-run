@@ -84,7 +84,6 @@ func TestIntegration(t *testing.T) {
 	Expect(err).NotTo(HaveOccurred())
 
 	settings.Buildpacks.PoetryInstall.Online, err = buildpackStore.Get.
-		WithVersion("1.2.3"). // TODO: remove this when there is a published poetry-install buildpack
 		Execute(settings.Config.PoetryInstall)
 	Expect(err).NotTo(HaveOccurred())
 
