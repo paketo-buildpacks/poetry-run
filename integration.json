@@ -1,0 +1,7 @@
+{
+  "cpython":"github.com/paketo-buildpacks/cpython",
+  "pip":"github.com/paketo-buildpacks/pip",
+  "poetry":"github.com/paketo-buildpacks/poetry",
+  "poetry-install":"github.com/paketo-buildpacks/poetry-install",
+  "build-plan":"github.com/paketo-community/build-plan"
+}
