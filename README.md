@@ -1,1 +1,52 @@
-# poetry-run
+# Poetry Run Cloud Native Buildpack
+## `gcr.io/paketo-buildpacks/poetry-run`
+
+The Paketo Poetry Run CNB sets the start command for a given
+[poetry](https://python-poetry.org/) application. The buildpack expects that
+the app contains a valid `pyproject.toml` at the root, and that it has **exactly one poetry script**.
+
+More specifically, the buildpack requires that `pyproject.toml` looks like the following:
+
+```
+[tool.poetry.scripts]
+some-script = "some.module:some_method"
+```
+
+The resulting start command for this example would be `poetry run some-script`.
+
+See the [`poetry run` documentation](https://python-poetry.org/docs/cli/#run) for more information.
+
+## Integration
+
+This buildpacks writes a start command, so currently there is no conceivable
+reason to require it as a dependency.
+
+## Usage
+
+To package this buildpack for consumption:
+
+```
+$ ./scripts/package.sh --version <version-number>
+```
+
+This will create a `buildpackage.cnb` file under the `build` directory which you
+can use to build your app as follows:
+```
+pack build <app-name> -p <path-to-app> -b <path/to/cpython.cnb> -b <path/to/pip.cnb> -b <path/to/poetry.cnb> -b <path/to/poetry-install.cnb> -b build/buildpackage.cnb
+```
+
+## Application Detection
+This buildpack detects on the presence of a `pyproject.toml` file in the root.
+It does not validate the script is valid or will execute successfully.
+
+## Run Tests
+
+To run all unit tests, run:
+```
+./scripts/unit.sh
+```
+
+To run all integration tests, run:
+```
+/scripts/integration.sh
+```
