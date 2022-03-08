@@ -36,8 +36,13 @@ pack build <app-name> -p <path-to-app> -b <path/to/cpython.cnb> -b <path/to/pip.
 ```
 
 ## Application Detection
-This buildpack detects on the presence of a `pyproject.toml` file in the root.
-It does not validate the script is valid or will execute successfully.
+This buildpack detects on the presence of **exactly one** poetry script defined in `pyproject.toml`.
+More specifically, the buildpack will detect if `pyproject.toml` looks like the following:
+
+```
+[tool.poetry.scripts]
+some-script = "some.module:some_method"
+```
 
 ## Run Tests
 
@@ -50,3 +55,9 @@ To run all integration tests, run:
 ```
 /scripts/integration.sh
 ```
+
+## Known issues and limitations
+
+* Only one (and exactly one) script may be defined in the `pyproject.toml`
+  file. Zero scripts, or multiple scripts, will result in the buildpack failing
+  detection and therefore not participating in the order group.
