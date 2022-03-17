@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/paketo-buildpacks/packit"
-	"github.com/paketo-buildpacks/packit/scribe"
+	"github.com/paketo-buildpacks/packit/v2"
+	"github.com/paketo-buildpacks/packit/v2/scribe"
 )
 
 // Build will return a packit.BuildFunc that will be invoked during the build
