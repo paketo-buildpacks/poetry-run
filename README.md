@@ -44,6 +44,12 @@ More specifically, the buildpack will detect if `pyproject.toml` looks like the 
 some-script = "some.module:some_method"
 ```
 
+### Configuration
+
+#### `BP_LIVE_RELOAD_ENABLED`
+
+Set `BP_LIVE_RELOAD_ENABLED=true` to additionally require `watchexec` for use in Procfile commands.
+
 ## Run Tests
 
 To run all unit tests, run:

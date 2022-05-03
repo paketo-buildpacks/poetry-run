@@ -3,6 +3,7 @@ package poetryrun_test
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -71,6 +72,53 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 			Expect(pyProjectParser.ParseCall.Receives.String).To(Equal(filepath.Join(workingDir, "pyproject.toml")))
 		})
 
+		context("when BP_LIVE_RELOAD_ENABLED=true", func() {
+			it.Before(func() {
+				Expect(os.Setenv("BP_LIVE_RELOAD_ENABLED", "true")).To(Succeed())
+			})
+
+			it.After(func() {
+				Expect(os.Unsetenv("BP_LIVE_RELOAD_ENABLED")).To(Succeed())
+			})
+
+			it("requires watchexec at launch", func() {
+				result, err := detect(packit.DetectContext{
+					WorkingDir: workingDir,
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(result.Plan).To(Equal(packit.BuildPlan{
+					Provides: []packit.BuildPlanProvision{},
+					Requires: []packit.BuildPlanRequirement{
+						{
+							Name: poetryrun.CPython,
+							Metadata: poetryrun.BuildPlanMetadata{
+								Launch: true,
+							},
+						},
+						{
+							Name: poetryrun.Poetry,
+							Metadata: poetryrun.BuildPlanMetadata{
+								Launch: true,
+							},
+						},
+						{
+							Name: poetryrun.PoetryVenv,
+							Metadata: poetryrun.BuildPlanMetadata{
+								Launch: true,
+							},
+						},
+						{
+							Name: poetryrun.Watchexec,
+							Metadata: poetryrun.BuildPlanMetadata{
+								Launch: true,
+							},
+						},
+					},
+				}))
+			})
+		})
+
 		context("when there is no script returned by the paser", func() {
 			it.Before(func() {
 				pyProjectParser.ParseCall.Returns.String = ""
@@ -98,7 +146,23 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 					Expect(err).To(MatchError(ContainSubstring("some error")))
 				})
 			})
-		})
 
+			context("when BP_LIVE_RELOAD_ENABLED is set to an invalid value", func() {
+				it.Before(func() {
+					Expect(os.Setenv("BP_LIVE_RELOAD_ENABLED", "not-a-bool")).To(Succeed())
+				})
+
+				it.After(func() {
+					Expect(os.Unsetenv("BP_LIVE_RELOAD_ENABLED")).To(Succeed())
+				})
+
+				it("returns an error", func() {
+					_, err := detect(packit.DetectContext{
+						WorkingDir: workingDir,
+					})
+					Expect(err).To(MatchError(ContainSubstring("failed to parse BP_LIVE_RELOAD_ENABLED value not-a-bool")))
+				})
+			})
+		})
 	})
 }

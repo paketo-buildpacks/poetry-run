@@ -12,6 +12,10 @@ const CPython = "cpython"
 // https://github.com/paketo-buildpacks/poetry.
 const Poetry = "poetry"
 
+// Watchexec is the name of the dependency provided by the Watchexec buildpack:
+// https://github.com/paketo-buildpacks/watchexec
+const Watchexec = "watchexec"
+
 // VenvLayerName is the name of the layer where the venv dependencies are
 // installed to.
 const VenvLayerName = "poetry-venv"
