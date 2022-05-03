@@ -1,7 +1,9 @@
 package poetryrun
 
 import (
+	"os"
 	"path/filepath"
+	"strconv"
 
 	"github.com/paketo-buildpacks/packit/v2"
 )
@@ -38,30 +40,54 @@ func Detect(pyProjectParser PyProjectParser) packit.DetectFunc {
 			return packit.DetectResult{}, packit.Fail
 		}
 
+		requirements := []packit.BuildPlanRequirement{
+			{
+				Name: CPython,
+				Metadata: BuildPlanMetadata{
+					Launch: true,
+				},
+			},
+			{
+				Name: Poetry,
+				Metadata: BuildPlanMetadata{
+					Launch: true,
+				},
+			},
+			{
+				Name: PoetryVenv,
+				Metadata: BuildPlanMetadata{
+					Launch: true,
+				},
+			},
+		}
+
+		if shouldReload, err := checkLiveReloadEnabled(); err != nil {
+			return packit.DetectResult{}, err
+		} else if shouldReload {
+			requirements = append(requirements, packit.BuildPlanRequirement{
+				Name: Watchexec,
+				Metadata: BuildPlanMetadata{
+					Launch: true,
+				},
+			})
+		}
+
 		return packit.DetectResult{
 			Plan: packit.BuildPlan{
 				Provides: []packit.BuildPlanProvision{},
-				Requires: []packit.BuildPlanRequirement{
-					{
-						Name: CPython,
-						Metadata: BuildPlanMetadata{
-							Launch: true,
-						},
-					},
-					{
-						Name: Poetry,
-						Metadata: BuildPlanMetadata{
-							Launch: true,
-						},
-					},
-					{
-						Name: PoetryVenv,
-						Metadata: BuildPlanMetadata{
-							Launch: true,
-						},
-					},
-				},
+				Requires: requirements,
 			},
 		}, nil
 	}
+}
+
+func checkLiveReloadEnabled() (bool, error) {
+	if reload, ok := os.LookupEnv("BP_LIVE_RELOAD_ENABLED"); ok {
+		shouldEnableReload, err := strconv.ParseBool(reload)
+		if err != nil {
+			return false, packit.Fail.WithMessage("failed to parse BP_LIVE_RELOAD_ENABLED value %s: %w", reload, err)
+		}
+		return shouldEnableReload, nil
+	}
+	return false, nil
 }
