@@ -46,9 +46,8 @@ some-script = "some.module:some_method"
 
 ### Configuration
 
-#### `BP_LIVE_RELOAD_ENABLED`
-
-Set `BP_LIVE_RELOAD_ENABLED=true` to additionally require `watchexec` for use in Procfile commands.
+#### Enabling reloadable process types
+You can configure this buildpack to wrap the entrypoint process of your app such that it kills and restarts the process whenever files change in the app's working directory in the container. With this feature enabled, copying new versions of source code into the running container will trigger your app's process to restart. Set the environment variable `BP_LIVE_RELOAD_ENABLED=true` at build time to enable this feature.
 
 ## Run Tests
 
