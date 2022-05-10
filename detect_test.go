@@ -2,7 +2,6 @@ package poetryrun_test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -21,17 +20,9 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 		detect packit.DetectFunc
 
 		pyProjectParser *fakes.PyProjectParser
-
-		workingDir string
 	)
 
 	it.Before(func() {
-		var err error
-		workingDir, err = ioutil.TempDir("", "working-dir")
-		Expect(err).NotTo(HaveOccurred())
-
-		Expect(ioutil.WriteFile(filepath.Join(workingDir, "pyproject.toml"), []byte("some contents"), 0644)).To(Succeed())
-
 		pyProjectParser = &fakes.PyProjectParser{}
 		pyProjectParser.ParseCall.Returns.String = "some-script"
 
@@ -41,12 +32,11 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 	context("detection", func() {
 		it("returns a build plan", func() {
 			result, err := detect(packit.DetectContext{
-				WorkingDir: workingDir,
+				WorkingDir: "a-working-dir",
 			})
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(result.Plan).To(Equal(packit.BuildPlan{
-				Provides: []packit.BuildPlanProvision{},
 				Requires: []packit.BuildPlanRequirement{
 					{
 						Name: poetryrun.CPython,
@@ -69,7 +59,7 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 				},
 			}))
 
-			Expect(pyProjectParser.ParseCall.Receives.String).To(Equal(filepath.Join(workingDir, "pyproject.toml")))
+			Expect(pyProjectParser.ParseCall.Receives.String).To(Equal(filepath.Join("a-working-dir", "pyproject.toml")))
 		})
 
 		context("when BP_LIVE_RELOAD_ENABLED=true", func() {
@@ -82,13 +72,10 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 			})
 
 			it("requires watchexec at launch", func() {
-				result, err := detect(packit.DetectContext{
-					WorkingDir: workingDir,
-				})
+				result, err := detect(packit.DetectContext{})
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(result.Plan).To(Equal(packit.BuildPlan{
-					Provides: []packit.BuildPlanProvision{},
 					Requires: []packit.BuildPlanRequirement{
 						{
 							Name: poetryrun.CPython,
@@ -119,17 +106,15 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 			})
 		})
 
-		context("when there is no script returned by the paser", func() {
+		context("when there is no script returned by the parser", func() {
 			it.Before(func() {
 				pyProjectParser.ParseCall.Returns.String = ""
 			})
 
 			it("fails detection", func() {
-				_, err := detect(packit.DetectContext{
-					WorkingDir: workingDir,
-				})
+				_, err := detect(packit.DetectContext{})
 
-				Expect(err).To(MatchError(packit.Fail))
+				Expect(err).To(MatchError(packit.Fail.WithMessage("Expects one and exactly one script defined in pyproject.toml")))
 			})
 		})
 
@@ -140,9 +125,7 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 				})
 
 				it("returns the error", func() {
-					_, err := detect(packit.DetectContext{
-						WorkingDir: workingDir,
-					})
+					_, err := detect(packit.DetectContext{})
 					Expect(err).To(MatchError(ContainSubstring("some error")))
 				})
 			})
@@ -157,9 +140,7 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 				})
 
 				it("returns an error", func() {
-					_, err := detect(packit.DetectContext{
-						WorkingDir: workingDir,
-					})
+					_, err := detect(packit.DetectContext{})
 					Expect(err).To(MatchError(ContainSubstring("failed to parse BP_LIVE_RELOAD_ENABLED value not-a-bool")))
 				})
 			})

@@ -31,13 +31,10 @@ type PyProjectParser interface {
 // defined in the pyproject.toml under [tool.poetry.scripts]
 func Detect(pyProjectParser PyProjectParser) packit.DetectFunc {
 	return func(context packit.DetectContext) (packit.DetectResult, error) {
-		script, err := pyProjectParser.Parse(filepath.Join(context.WorkingDir, "pyproject.toml"))
-		if err != nil {
+		if script, err := pyProjectParser.Parse(filepath.Join(context.WorkingDir, "pyproject.toml")); err != nil {
 			return packit.DetectResult{}, err
-		}
-
-		if script == "" {
-			return packit.DetectResult{}, packit.Fail
+		} else if script == "" {
+			return packit.DetectResult{}, packit.Fail.WithMessage("Expects one and exactly one script defined in pyproject.toml")
 		}
 
 		requirements := []packit.BuildPlanRequirement{
@@ -74,7 +71,6 @@ func Detect(pyProjectParser PyProjectParser) packit.DetectFunc {
 
 		return packit.DetectResult{
 			Plan: packit.BuildPlan{
-				Provides: []packit.BuildPlanProvision{},
 				Requires: requirements,
 			},
 		}, nil
