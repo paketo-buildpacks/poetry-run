@@ -31,10 +31,11 @@ type PyProjectParser interface {
 // defined in the pyproject.toml under [tool.poetry.scripts]
 func Detect(pyProjectParser PyProjectParser) packit.DetectFunc {
 	return func(context packit.DetectContext) (packit.DetectResult, error) {
-		if script, err := pyProjectParser.Parse(filepath.Join(context.WorkingDir, "pyproject.toml")); err != nil {
+
+		if shouldDetect, err := shouldDetect(context.WorkingDir, pyProjectParser); err != nil {
 			return packit.DetectResult{}, err
-		} else if script == "" {
-			return packit.DetectResult{}, packit.Fail.WithMessage("Expects one and exactly one script defined in pyproject.toml")
+		} else if !shouldDetect {
+			return packit.DetectResult{}, nil
 		}
 
 		requirements := []packit.BuildPlanRequirement{
@@ -86,4 +87,18 @@ func checkLiveReloadEnabled() (bool, error) {
 		return shouldEnableReload, nil
 	}
 	return false, nil
+}
+
+func shouldDetect(workingDir string, pyProjectParser PyProjectParser) (shouldDetect bool, err error) {
+	if _, hasRunTarget := os.LookupEnv("BP_POETRY_RUN_TARGET"); hasRunTarget {
+		return true, nil
+	}
+
+	if script, err := pyProjectParser.Parse(filepath.Join(workingDir, "pyproject.toml")); err != nil {
+		return false, err
+	} else if script == "" {
+		return false, packit.Fail.WithMessage("Expects one and exactly one script defined in pyproject.toml")
+	}
+
+	return true, nil
 }
