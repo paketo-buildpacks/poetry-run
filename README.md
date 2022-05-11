@@ -37,14 +37,21 @@ $ ./scripts/package.sh --version <version-number>
 This will create a `buildpackage.cnb` file under the `build` directory which you
 can use to build your app as follows:
 ```
-pack build <app-name> -p <path-to-app> -b <path/to/cpython.cnb> -b <path/to/pip.cnb> -b <path/to/poetry.cnb> -b <path/to/poetry-install.cnb> -b build/buildpackage.cnb
+pack build <app-name> -p <path-to-app> \
+  -b <path/to/cpython.cnb> \
+  -b <path/to/pip.cnb> \
+  -b <path/to/poetry.cnb> \
+  -b <path/to/poetry-install.cnb> \
+  -b build/buildpackage.cnb
 ```
 
 ### Configuration
 
 #### Custom run command
 This buildpack will set a start command that begins with `poetry run`. You can configure a custom command by using `BP_POETRY_RUN_TARGET`.
-Example: If `BP_POETRY_RUN_TARGET=default_app.server:run`, this buildpack will set a start command of `poetry run default_app.server:run`.
+
+- Example: If `BP_POETRY_RUN_TARGET=default_app.server:run`, this buildpack will set a start command of `poetry run default_app.server:run`.
+- Example: If `BP_POETRY_RUN_TARGET=python`, this buildpack will set a start command of `poetry run python`, which will effectively launch the Python REPL.
 
 #### Enabling reloadable process types
 You can configure this buildpack to wrap the entrypoint process of your app such that it kills and restarts the process whenever files change in the app's working directory in the container. With this feature enabled, copying new versions of source code into the running container will trigger your app's process to restart. Set the environment variable `BP_LIVE_RELOAD_ENABLED=true` at build time to enable this feature.
