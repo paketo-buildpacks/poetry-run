@@ -1,7 +1,6 @@
 package poetryrun_test
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -21,7 +20,7 @@ func testPyProjectConfigParser(t *testing.T, context spec.G, it spec.S) {
 
 	it.Before(func() {
 		var err error
-		workingDir, err = ioutil.TempDir("", "working-dir")
+		workingDir, err = os.MkdirTemp("", "working-dir")
 		Expect(err).NotTo(HaveOccurred())
 
 		contents := `
@@ -29,7 +28,7 @@ func testPyProjectConfigParser(t *testing.T, context spec.G, it spec.S) {
 my-script = "my_module:main"
 `
 
-		Expect(ioutil.WriteFile(filepath.Join(workingDir, "pyproject.toml"), []byte(contents), 0644)).To(Succeed())
+		Expect(os.WriteFile(filepath.Join(workingDir, "pyproject.toml"), []byte(contents), 0644)).To(Succeed())
 
 		parser = poetryrun.NewPyProjectConfigParser()
 	})
@@ -61,7 +60,7 @@ my-script = "my_module:main"
 				contents := `
 [some.other.valid.toml]
 a-key = "a value"`
-				Expect(ioutil.WriteFile(filepath.Join(workingDir, "pyproject.toml"), []byte(contents), 0644)).To(Succeed())
+				Expect(os.WriteFile(filepath.Join(workingDir, "pyproject.toml"), []byte(contents), 0644)).To(Succeed())
 			})
 
 			it("returns an empty string without error", func() {
@@ -80,7 +79,7 @@ a-key = "a value"`
 my-script = "my_module:main"
 my-other-script = "my_other_module:main"
 `
-				Expect(ioutil.WriteFile(filepath.Join(workingDir, "pyproject.toml"), []byte(contents), 0644)).To(Succeed())
+				Expect(os.WriteFile(filepath.Join(workingDir, "pyproject.toml"), []byte(contents), 0644)).To(Succeed())
 			})
 
 			it("returns an empty string without error", func() {
@@ -114,7 +113,7 @@ my-other-script = "my_other_module:main"
 [tool.poetry.scripts]
 a-key = [ "a value", "another value"]`
 
-					Expect(ioutil.WriteFile(filepath.Join(workingDir, "pyproject.toml"), []byte(contents), 0644)).To(Succeed())
+					Expect(os.WriteFile(filepath.Join(workingDir, "pyproject.toml"), []byte(contents), 0644)).To(Succeed())
 				})
 
 				it("returns an error", func() {
