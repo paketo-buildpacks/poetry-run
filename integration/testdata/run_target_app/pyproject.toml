@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "default_app"
+version = "0.1.0"
+description = ""
+authors = []
+
+[tool.poetry.dependencies]
+python = "^3.10"
+Flask = "^2.0.3"
+
+[tool.poetry.dev-dependencies]
+
+[tool.poetry.scripts]
+bad-script-key = "this_script:does_nothing"
+working-script-key = "default_app.server:run"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
