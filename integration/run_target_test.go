@@ -91,7 +91,7 @@ func testRunTargets(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		context("when BP_POETRY_RUN_TARGET is set to a script key", func() {
-			it("something", func() {
+			it("builds and runs successfully", func() {
 				var err error
 				var logs fmt.Stringer
 
