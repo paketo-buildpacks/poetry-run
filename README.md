@@ -48,10 +48,9 @@ pack build <app-name> -p <path-to-app> \
 ### Configuration
 
 #### Custom run command
-This buildpack will set a start command that begins with `poetry run`. You can configure a custom command by using `BP_POETRY_RUN_TARGET`.
-
-- Example: If `BP_POETRY_RUN_TARGET=default_app.server:run`, this buildpack will set a start command of `poetry run default_app.server:run`.
-- Example: If `BP_POETRY_RUN_TARGET=python`, this buildpack will set a start command of `poetry run python`, which will effectively launch the Python REPL.
+This buildpack will set a start command that begins with `poetry run`.
+This can be set using `BP_POETRY_RUN_TARGET` and can reference either a script key from `pyproject.toml` or an executable on the file system.
+See the [`poetry run` documentation](https://python-poetry.org/docs/cli/#run) for more information.
 
 #### Enabling reloadable process types
 You can configure this buildpack to wrap the entrypoint process of your app such that it kills and restarts the process whenever files change in the app's working directory in the container. With this feature enabled, copying new versions of source code into the running container will trigger your app's process to restart. Set the environment variable `BP_LIVE_RELOAD_ENABLED=true` at build time to enable this feature.
