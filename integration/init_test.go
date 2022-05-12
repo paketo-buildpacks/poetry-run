@@ -9,6 +9,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/paketo-buildpacks/occam"
+	"github.com/paketo-buildpacks/occam/packagers"
 	"github.com/sclevine/spec"
 	"github.com/sclevine/spec/report"
 
@@ -47,6 +48,9 @@ var settings struct {
 		BuildPlan struct {
 			Online string
 		}
+		Watchexec struct {
+			Online string
+		}
 	}
 
 	Config struct {
@@ -55,6 +59,7 @@ var settings struct {
 		Poetry        string `json:"poetry"`
 		PoetryInstall string `json:"poetry-install"`
 		BuildPlan     string `json:"build-plan"`
+		Watchexec     string `json:"watchexec"`
 	}
 }
 
@@ -77,6 +82,7 @@ func TestIntegration(t *testing.T) {
 	Expect(err).ToNot(HaveOccurred())
 
 	buildpackStore := occam.NewBuildpackStore()
+	libpakBuildpackStore := occam.NewBuildpackStore().WithPackager(packagers.NewLibpak())
 
 	settings.Buildpacks.PoetryRun.Online, err = buildpackStore.Get.
 		WithVersion("1.2.3").
@@ -101,6 +107,10 @@ func TestIntegration(t *testing.T) {
 
 	settings.Buildpacks.BuildPlan.Online, err = buildpackStore.Get.
 		Execute(settings.Config.BuildPlan)
+	Expect(err).NotTo(HaveOccurred())
+
+	settings.Buildpacks.Watchexec.Online, err = libpakBuildpackStore.Get.
+		Execute(settings.Config.Watchexec)
 	Expect(err).NotTo(HaveOccurred())
 
 	SetDefaultEventuallyTimeout(10 * time.Second)

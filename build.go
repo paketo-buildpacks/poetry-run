@@ -1,9 +1,9 @@
 package poetryrun
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/paketo-buildpacks/packit/v2"
 	"github.com/paketo-buildpacks/packit/v2/scribe"
@@ -19,33 +19,60 @@ func Build(pyProjectParser PyProjectParser, logger scribe.Emitter) packit.BuildF
 	return func(context packit.BuildContext) (packit.BuildResult, error) {
 		logger.Title("%s %s", context.BuildpackInfo.Name, context.BuildpackInfo.Version)
 
-		var command string
+		args := []string{"run"}
 
 		logger.Debug.Process("Finding the poetry run target")
 		if runTarget, ok := os.LookupEnv("BP_POETRY_RUN_TARGET"); ok {
-			command = fmt.Sprintf("poetry run %s", runTarget)
+			args = append(args, strings.Split(runTarget, " ")...)
 			logger.Debug.Subprocess("Found BP_POETRY_RUN_TARGET=%s", runTarget)
 		} else {
 			scriptKey, err := pyProjectParser.Parse(filepath.Join(context.WorkingDir, "pyproject.toml"))
 			if err != nil {
 				return packit.BuildResult{}, err
 			}
-			command = fmt.Sprintf("poetry run %s", scriptKey)
+			args = append(args, scriptKey)
 			logger.Debug.Subprocess("Found pyproject.toml script=%s", scriptKey)
 		}
 
-		logger.Process("Assigning launch process")
-		logger.Subprocess("web: %s", command)
+		processes := []packit.Process{}
+
+		if shouldReload, err := checkLiveReloadEnabled(); err != nil {
+			return packit.BuildResult{}, err
+		} else if shouldReload {
+			processes = append(processes, packit.Process{
+				Type:    "web",
+				Command: "watchexec",
+				Args: append([]string{
+					"--restart",
+					"--watch", context.WorkingDir,
+					"--shell", "none",
+					"--",
+					"poetry"}, args...),
+				Default: true,
+				Direct:  true,
+			})
+
+			processes = append(processes, packit.Process{
+				Type:    "no-reload",
+				Command: "poetry",
+				Args:    args,
+				Direct:  true,
+			})
+		} else {
+			processes = append(processes, packit.Process{
+				Type:    "web",
+				Command: "poetry",
+				Args:    args,
+				Default: true,
+				Direct:  true,
+			})
+		}
+
+		logger.LaunchProcesses(processes)
 
 		return packit.BuildResult{
 			Launch: packit.LaunchMetadata{
-				Processes: []packit.Process{
-					{
-						Type:    "web",
-						Command: command,
-						Default: true,
-					},
-				},
+				Processes: processes,
 			},
 		}, nil
 	}
