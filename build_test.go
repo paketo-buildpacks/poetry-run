@@ -84,8 +84,13 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 					Processes: []packit.Process{
 						{
 							Type:    "web",
-							Command: "poetry run some-script",
+							Command: "poetry",
+							Args: []string{
+								"run",
+								"some-script",
+							},
 							Default: true,
+							Direct:  true,
 						},
 					},
 				},
@@ -94,9 +99,56 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			Expect(buffer.String()).To(ContainLines(
 				ContainSubstring("Finding the poetry run target"),
 				ContainSubstring("Found pyproject.toml script=some-script"),
-				ContainSubstring("Assigning launch process"),
-				ContainSubstring("web: poetry run some-script"),
+				ContainSubstring("Assigning launch processes:"),
+				ContainSubstring("web (default): poetry run some-script"),
 			))
+		})
+
+		context("when BP_LIVE_RELOAD_ENABLED=true in the build environment", func() {
+			it.Before(func() {
+				os.Setenv("BP_LIVE_RELOAD_ENABLED", "true")
+			})
+
+			it.After(func() {
+				os.Unsetenv("BP_LIVE_RELOAD_ENABLED")
+			})
+
+			it("adds a reloadable start command and makes it the default", func() {
+				result, err := build(buildContext)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(result).To(Equal(packit.BuildResult{
+					Plan: packit.BuildpackPlan{
+						Entries: nil,
+					},
+					Layers: nil,
+					Launch: packit.LaunchMetadata{
+						Processes: []packit.Process{
+							{
+								Type:    "web",
+								Command: "watchexec",
+								Args: []string{
+									"--restart",
+									"--watch", workingDir,
+									"--shell", "none",
+									"--",
+									"poetry",
+									"run",
+									"some-script",
+								},
+								Default: true,
+								Direct:  true,
+							},
+							{
+								Type:    "no-reload",
+								Command: "poetry",
+								Args:    []string{"run", "some-script"},
+								Direct:  true,
+							},
+						},
+					},
+				}))
+			})
 		})
 	})
 
@@ -122,8 +174,15 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 					Processes: []packit.Process{
 						{
 							Type:    "web",
-							Command: "poetry run a custom command",
+							Command: "poetry",
+							Args: []string{
+								"run",
+								"a",
+								"custom",
+								"command",
+							},
 							Default: true,
+							Direct:  true,
 						},
 					},
 				},
@@ -132,10 +191,64 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			Expect(buffer.String()).To(ContainLines(
 				ContainSubstring("Finding the poetry run target"),
 				ContainSubstring("Found BP_POETRY_RUN_TARGET=a custom command"),
-				ContainSubstring("Assigning launch process"),
-				ContainSubstring("web: poetry run a custom command"),
+				ContainSubstring("Assigning launch processes:"),
+				ContainSubstring("web (default): poetry run a custom command"),
 			))
 			Expect(pyProjectParser.ParseCall.CallCount).To(Equal(0))
+		})
+
+		context("when BP_LIVE_RELOAD_ENABLED=true in the build environment", func() {
+			it.Before(func() {
+				os.Setenv("BP_LIVE_RELOAD_ENABLED", "true")
+			})
+
+			it.After(func() {
+				os.Unsetenv("BP_LIVE_RELOAD_ENABLED")
+			})
+
+			it("adds a reloadable start command and makes it the default", func() {
+				result, err := build(buildContext)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(result).To(Equal(packit.BuildResult{
+					Plan: packit.BuildpackPlan{
+						Entries: nil,
+					},
+					Layers: nil,
+					Launch: packit.LaunchMetadata{
+						Processes: []packit.Process{
+							{
+								Type:    "web",
+								Command: "watchexec",
+								Args: []string{
+									"--restart",
+									"--watch", workingDir,
+									"--shell", "none",
+									"--",
+									"poetry",
+									"run",
+									"a",
+									"custom",
+									"command",
+								},
+								Default: true,
+								Direct:  true,
+							},
+							{
+								Type:    "no-reload",
+								Command: "poetry",
+								Args: []string{
+									"run",
+									"a",
+									"custom",
+									"command",
+								},
+								Direct: true,
+							},
+						},
+					},
+				}))
+			})
 		})
 	})
 
@@ -151,21 +264,24 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 				})
 
 				it("returns the error", func() {
-					_, err := build(packit.BuildContext{
-						WorkingDir: workingDir,
-						CNBPath:    cnbDir,
-						Stack:      "some-stack",
-						BuildpackInfo: packit.BuildpackInfo{
-							Name:    "Some Buildpack",
-							Version: "some-version",
-						},
-						Plan: packit.BuildpackPlan{
-							Entries: []packit.BuildpackPlanEntry{},
-						},
-						Layers: packit.Layers{Path: layersDir},
-					})
+					_, err := build(buildContext)
 					Expect(err).To(MatchError(ContainSubstring("some error")))
 				})
+			})
+		})
+
+		context("when BP_LIVE_RELOAD_ENABLED is set to an invalid value", func() {
+			it.Before(func() {
+				os.Setenv("BP_LIVE_RELOAD_ENABLED", "not-a-bool")
+			})
+
+			it.After(func() {
+				os.Unsetenv("BP_LIVE_RELOAD_ENABLED")
+			})
+
+			it("returns an error", func() {
+				_, err := build(buildContext)
+				Expect(err).To(MatchError(ContainSubstring("failed to parse BP_LIVE_RELOAD_ENABLED value not-a-bool")))
 			})
 		})
 	})

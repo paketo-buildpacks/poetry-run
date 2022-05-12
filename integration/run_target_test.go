@@ -74,8 +74,8 @@ func testRunTargets(t *testing.T, context spec.G, it spec.S) {
 
 				Expect(logs).To(ContainLines(
 					MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, buildpackInfo.Buildpack.Name)),
-					"  Assigning launch process",
-					"    web: poetry run python -V",
+					"  Assigning launch processes:",
+					"    web (default): poetry run python -V",
 				))
 
 				container, err = docker.Container.Run.
@@ -113,8 +113,8 @@ func testRunTargets(t *testing.T, context spec.G, it spec.S) {
 
 				Expect(logs).To(ContainLines(
 					MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, buildpackInfo.Buildpack.Name)),
-					"  Assigning launch process",
-					"    web: poetry run working-script-key",
+					"  Assigning launch processes:",
+					"    web (default): poetry run working-script-key",
 				))
 
 				container, err = docker.Container.Run.
