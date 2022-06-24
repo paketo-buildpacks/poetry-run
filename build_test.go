@@ -106,11 +106,11 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 
 		context("when BP_LIVE_RELOAD_ENABLED=true in the build environment", func() {
 			it.Before(func() {
-				os.Setenv("BP_LIVE_RELOAD_ENABLED", "true")
+				Expect(os.Setenv("BP_LIVE_RELOAD_ENABLED", "true")).To(Succeed())
 			})
 
 			it.After(func() {
-				os.Unsetenv("BP_LIVE_RELOAD_ENABLED")
+				Expect(os.Unsetenv("BP_LIVE_RELOAD_ENABLED")).To(Succeed())
 			})
 
 			it("adds a reloadable start command and makes it the default", func() {
@@ -199,11 +199,11 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 
 		context("when BP_LIVE_RELOAD_ENABLED=true in the build environment", func() {
 			it.Before(func() {
-				os.Setenv("BP_LIVE_RELOAD_ENABLED", "true")
+				Expect(os.Setenv("BP_LIVE_RELOAD_ENABLED", "true")).To(Succeed())
 			})
 
 			it.After(func() {
-				os.Unsetenv("BP_LIVE_RELOAD_ENABLED")
+				Expect(os.Unsetenv("BP_LIVE_RELOAD_ENABLED")).To(Succeed())
 			})
 
 			it("adds a reloadable start command and makes it the default", func() {
@@ -272,11 +272,11 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 
 		context("when BP_LIVE_RELOAD_ENABLED is set to an invalid value", func() {
 			it.Before(func() {
-				os.Setenv("BP_LIVE_RELOAD_ENABLED", "not-a-bool")
+				Expect(os.Setenv("BP_LIVE_RELOAD_ENABLED", "not-a-bool")).To(Succeed())
 			})
 
 			it.After(func() {
-				os.Unsetenv("BP_LIVE_RELOAD_ENABLED")
+				Expect(os.Unsetenv("BP_LIVE_RELOAD_ENABLED")).To(Succeed())
 			})
 
 			it("returns an error", func() {
