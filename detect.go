@@ -3,8 +3,8 @@ package poetryrun
 import (
 	"os"
 	"path/filepath"
-	"strconv"
 
+	reload "github.com/paketo-buildpacks/libreload-packit"
 	"github.com/paketo-buildpacks/packit/v2"
 )
 
@@ -21,6 +21,10 @@ type PyProjectParser interface {
 	Parse(string) (string, error)
 }
 
+type Reload reload.Reloader
+
+//go:generate faux --interface Reload --output fakes/reload.go
+
 // Detect will return a packit.DetectFunc that will be invoked during the
 // detect phase of the buildpack lifecycle.
 //
@@ -29,7 +33,7 @@ type PyProjectParser interface {
 //
 // Detection is contingent on there being one or more scripts to run
 // defined in the pyproject.toml under [tool.poetry.scripts]
-func Detect(pyProjectParser PyProjectParser) packit.DetectFunc {
+func Detect(pyProjectParser PyProjectParser, reload Reload) packit.DetectFunc {
 	return func(context packit.DetectContext) (packit.DetectResult, error) {
 
 		if shouldDetect, err := shouldDetect(context.WorkingDir, pyProjectParser); err != nil {
@@ -59,9 +63,9 @@ func Detect(pyProjectParser PyProjectParser) packit.DetectFunc {
 			},
 		}
 
-		if shouldReload, err := checkLiveReloadEnabled(); err != nil {
+		if shouldEnableReload, err := reload.ShouldEnableLiveReload(); err != nil {
 			return packit.DetectResult{}, err
-		} else if shouldReload {
+		} else if shouldEnableReload {
 			requirements = append(requirements, packit.BuildPlanRequirement{
 				Name: Watchexec,
 				Metadata: BuildPlanMetadata{
@@ -76,17 +80,6 @@ func Detect(pyProjectParser PyProjectParser) packit.DetectFunc {
 			},
 		}, nil
 	}
-}
-
-func checkLiveReloadEnabled() (bool, error) {
-	if reload, ok := os.LookupEnv("BP_LIVE_RELOAD_ENABLED"); ok {
-		shouldEnableReload, err := strconv.ParseBool(reload)
-		if err != nil {
-			return false, packit.Fail.WithMessage("failed to parse BP_LIVE_RELOAD_ENABLED value %s: %w", reload, err)
-		}
-		return shouldEnableReload, nil
-	}
-	return false, nil
 }
 
 func shouldDetect(workingDir string, pyProjectParser PyProjectParser) (shouldDetect bool, err error) {

@@ -2,10 +2,13 @@ package poetryrun_test
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"testing"
 
+	"github.com/paketo-buildpacks/libreload-packit"
+	"github.com/paketo-buildpacks/libreload-packit/watchexec"
 	"github.com/paketo-buildpacks/packit/v2"
 	"github.com/paketo-buildpacks/packit/v2/scribe"
 	poetryrun "github.com/paketo-buildpacks/poetry-run"
@@ -26,6 +29,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		buffer     *bytes.Buffer
 
 		pyProjectParser *fakes.PyProjectParser
+		reloader        *fakes.Reload
 
 		build        packit.BuildFunc
 		buildContext packit.BuildContext
@@ -48,7 +52,12 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		pyProjectParser = &fakes.PyProjectParser{}
 		pyProjectParser.ParseCall.Returns.String = "some-script"
 
-		build = poetryrun.Build(pyProjectParser, logger)
+		reloader = &fakes.Reload{}
+		reloader.TransformReloadableProcessesCall.Stub = func(process packit.Process, spec libreload.ReloadableProcessSpec) (packit.Process, packit.Process) {
+			return watchexec.NewWatchexecReloader().TransformReloadableProcesses(process, spec)
+		}
+
+		build = poetryrun.Build(pyProjectParser, logger, reloader)
 		buildContext = packit.BuildContext{
 			WorkingDir: workingDir,
 			CNBPath:    cnbDir,
@@ -104,13 +113,9 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			))
 		})
 
-		context("when BP_LIVE_RELOAD_ENABLED=true in the build environment", func() {
+		context("when live reload is enabled", func() {
 			it.Before(func() {
-				Expect(os.Setenv("BP_LIVE_RELOAD_ENABLED", "true")).To(Succeed())
-			})
-
-			it.After(func() {
-				Expect(os.Unsetenv("BP_LIVE_RELOAD_ENABLED")).To(Succeed())
+				reloader.ShouldEnableLiveReloadCall.Returns.Bool = true
 			})
 
 			it("adds a reloadable start command and makes it the default", func() {
@@ -125,7 +130,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 					Launch: packit.LaunchMetadata{
 						Processes: []packit.Process{
 							{
-								Type:    "web",
+								Type:    "reload-web",
 								Command: "watchexec",
 								Args: []string{
 									"--restart",
@@ -140,7 +145,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 								Direct:  true,
 							},
 							{
-								Type:    "no-reload",
+								Type:    "web",
 								Command: "poetry",
 								Args:    []string{"run", "some-script"},
 								Direct:  true,
@@ -197,13 +202,9 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			Expect(pyProjectParser.ParseCall.CallCount).To(Equal(0))
 		})
 
-		context("when BP_LIVE_RELOAD_ENABLED=true in the build environment", func() {
+		context("when live reload is enabled", func() {
 			it.Before(func() {
-				Expect(os.Setenv("BP_LIVE_RELOAD_ENABLED", "true")).To(Succeed())
-			})
-
-			it.After(func() {
-				Expect(os.Unsetenv("BP_LIVE_RELOAD_ENABLED")).To(Succeed())
+				reloader.ShouldEnableLiveReloadCall.Returns.Bool = true
 			})
 
 			it("adds a reloadable start command and makes it the default", func() {
@@ -218,7 +219,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 					Launch: packit.LaunchMetadata{
 						Processes: []packit.Process{
 							{
-								Type:    "web",
+								Type:    "reload-web",
 								Command: "watchexec",
 								Args: []string{
 									"--restart",
@@ -235,7 +236,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 								Direct:  true,
 							},
 							{
-								Type:    "no-reload",
+								Type:    "web",
 								Command: "poetry",
 								Args: []string{
 									"run",
@@ -270,18 +271,14 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			})
 		})
 
-		context("when BP_LIVE_RELOAD_ENABLED is set to an invalid value", func() {
+		context("when reloader.ShouldEnableLiveReloadCall returns an error", func() {
 			it.Before(func() {
-				Expect(os.Setenv("BP_LIVE_RELOAD_ENABLED", "not-a-bool")).To(Succeed())
-			})
-
-			it.After(func() {
-				Expect(os.Unsetenv("BP_LIVE_RELOAD_ENABLED")).To(Succeed())
+				reloader.ShouldEnableLiveReloadCall.Returns.Error = errors.New("error from reloader")
 			})
 
 			it("returns an error", func() {
 				_, err := build(buildContext)
-				Expect(err).To(MatchError(ContainSubstring("failed to parse BP_LIVE_RELOAD_ENABLED value not-a-bool")))
+				Expect(err).To(MatchError("error from reloader"))
 			})
 		})
 	})
