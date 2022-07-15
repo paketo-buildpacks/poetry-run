@@ -1,6 +1,7 @@
 package poetryrun_test
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -20,12 +21,14 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 		detect packit.DetectFunc
 
 		pyProjectParser *fakes.PyProjectParser
+		reloader        *fakes.Reload
 	)
 
 	it.Before(func() {
 		pyProjectParser = &fakes.PyProjectParser{}
+		reloader = &fakes.Reload{}
 
-		detect = poetryrun.Detect(pyProjectParser)
+		detect = poetryrun.Detect(pyProjectParser, reloader)
 	})
 
 	context("with BP_POETRY_RUN_TARGET not set", func() {
@@ -70,13 +73,9 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 				Expect(pyProjectParser.ParseCall.Receives.String).To(Equal(filepath.Join("a-working-dir", "pyproject.toml")))
 			})
 
-			context("when BP_LIVE_RELOAD_ENABLED=true", func() {
+			context("when live reload is enabled", func() {
 				it.Before(func() {
-					Expect(os.Setenv("BP_LIVE_RELOAD_ENABLED", "true")).To(Succeed())
-				})
-
-				it.After(func() {
-					Expect(os.Unsetenv("BP_LIVE_RELOAD_ENABLED")).To(Succeed())
+					reloader.ShouldEnableLiveReloadCall.Returns.Bool = true
 				})
 
 				it("requires watchexec at launch", func() {
@@ -167,13 +166,9 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 			Expect(pyProjectParser.ParseCall.CallCount).To(Equal(0))
 		})
 
-		context("when BP_LIVE_RELOAD_ENABLED=true", func() {
+		context("when live reload is enabled", func() {
 			it.Before(func() {
-				Expect(os.Setenv("BP_LIVE_RELOAD_ENABLED", "true")).To(Succeed())
-			})
-
-			it.After(func() {
-				Expect(os.Unsetenv("BP_LIVE_RELOAD_ENABLED")).To(Succeed())
+				reloader.ShouldEnableLiveReloadCall.Returns.Bool = true
 			})
 
 			it("requires watchexec at launch", func() {
@@ -230,13 +225,9 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 			})
 		})
 
-		context("when BP_LIVE_RELOAD_ENABLED is set to an invalid value", func() {
+		context("when reloader.ShouldEnableLiveReload returns an error", func() {
 			it.Before(func() {
-				Expect(os.Setenv("BP_LIVE_RELOAD_ENABLED", "not-a-bool")).To(Succeed())
-			})
-
-			it.After(func() {
-				Expect(os.Unsetenv("BP_LIVE_RELOAD_ENABLED")).To(Succeed())
+				reloader.ShouldEnableLiveReloadCall.Returns.Error = errors.New("error from reloader")
 			})
 
 			context("when pyproject.toml parser returns a valid script", func() {
@@ -246,7 +237,7 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 
 				it("returns an error", func() {
 					_, err := detect(packit.DetectContext{})
-					Expect(err).To(MatchError(ContainSubstring("failed to parse BP_LIVE_RELOAD_ENABLED value not-a-bool")))
+					Expect(err).To(MatchError("error from reloader"))
 				})
 			})
 		})
