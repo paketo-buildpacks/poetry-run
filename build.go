@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/paketo-buildpacks/libreload-packit"
 	"github.com/paketo-buildpacks/packit/v2"
 	"github.com/paketo-buildpacks/packit/v2/scribe"
 )
@@ -15,7 +16,7 @@ import (
 // Build assigns the image a launch process of 'poetry run <target>' where <target>
 // is the key of a poetry script or system executable. This can be set via `BP_POETRY_RUN_TARGET`
 // or inferred from pyproject.toml when there is exactly one script.
-func Build(pyProjectParser PyProjectParser, logger scribe.Emitter) packit.BuildFunc {
+func Build(pyProjectParser PyProjectParser, logger scribe.Emitter, reloader Reloader) packit.BuildFunc {
 	return func(context packit.BuildContext) (packit.BuildResult, error) {
 		logger.Title("%s %s", context.BuildpackInfo.Name, context.BuildpackInfo.Version)
 
@@ -34,38 +35,25 @@ func Build(pyProjectParser PyProjectParser, logger scribe.Emitter) packit.BuildF
 			logger.Debug.Subprocess("Found pyproject.toml script=%s", scriptKey)
 		}
 
-		processes := []packit.Process{}
+		originalProcess := packit.Process{
+			Type:    "web",
+			Command: "poetry",
+			Args:    args,
+			Default: true,
+			Direct:  true,
+		}
 
-		if shouldReload, err := checkLiveReloadEnabled(); err != nil {
+		processes := make([]packit.Process, 0)
+
+		if shouldEnableReload, err := reloader.ShouldEnableLiveReload(); err != nil {
 			return packit.BuildResult{}, err
-		} else if shouldReload {
-			processes = append(processes, packit.Process{
-				Type:    "web",
-				Command: "watchexec",
-				Args: append([]string{
-					"--restart",
-					"--watch", context.WorkingDir,
-					"--shell", "none",
-					"--",
-					"poetry"}, args...),
-				Default: true,
-				Direct:  true,
+		} else if shouldEnableReload {
+			nonReloadableProcess, reloadableProcess := reloader.TransformReloadableProcesses(originalProcess, libreload.ReloadableProcessSpec{
+				WatchPaths: []string{context.WorkingDir},
 			})
-
-			processes = append(processes, packit.Process{
-				Type:    "no-reload",
-				Command: "poetry",
-				Args:    args,
-				Direct:  true,
-			})
+			processes = append(processes, reloadableProcess, nonReloadableProcess)
 		} else {
-			processes = append(processes, packit.Process{
-				Type:    "web",
-				Command: "poetry",
-				Args:    args,
-				Default: true,
-				Direct:  true,
-			})
+			processes = append(processes, originalProcess)
 		}
 
 		logger.LaunchProcesses(processes)

@@ -106,8 +106,8 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 			Expect(logs).To(ContainLines(
 				MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, buildpackInfo.Buildpack.Name)),
 				"  Assigning launch processes:",
-				"    web (default): watchexec --restart --watch /workspace --shell none -- poetry run my script",
-				"    no-reload:     poetry run my script",
+				"    reload-web (default): watchexec --restart --watch /workspace --shell none -- poetry run my script",
+				"    web:                  poetry run my script",
 			))
 
 			container, err = docker.Container.Run.
