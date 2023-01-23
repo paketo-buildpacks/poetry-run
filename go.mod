@@ -4,10 +4,10 @@ go 1.18
 
 require (
 	github.com/BurntSushi/toml v1.2.1
-	github.com/onsi/gomega v1.24.2
+	github.com/onsi/gomega v1.25.0
 	github.com/paketo-buildpacks/libreload-packit v0.0.1
-	github.com/paketo-buildpacks/occam v0.13.3
-	github.com/paketo-buildpacks/packit/v2 v2.7.0
+	github.com/paketo-buildpacks/occam v0.14.0
+	github.com/paketo-buildpacks/packit/v2 v2.8.0
 	github.com/sclevine/spec v1.4.0
 )
 
@@ -21,7 +21,7 @@ require (
 	github.com/containerd/cgroups v1.0.4 // indirect
 	github.com/containerd/containerd v1.6.15 // indirect
 	github.com/docker/distribution v2.8.1+incompatible // indirect
-	github.com/docker/docker v20.10.22+incompatible // indirect
+	github.com/docker/docker v20.10.23+incompatible // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.1 // indirect
@@ -50,7 +50,7 @@ require (
 	golang.org/x/sys v0.4.0 // indirect
 	golang.org/x/text v0.6.0 // indirect
 	golang.org/x/tools v0.5.0 // indirect
-	google.golang.org/genproto v0.0.0-20230113154510-dbe35b8444a5 // indirect
+	google.golang.org/genproto v0.0.0-20230119192704-9d59e20e5cd1 // indirect
 	google.golang.org/grpc v1.52.0 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
