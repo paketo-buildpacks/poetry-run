@@ -8,12 +8,13 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
-	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/format"
 	"github.com/paketo-buildpacks/occam"
 	"github.com/paketo-buildpacks/occam/packagers"
 	"github.com/sclevine/spec"
 	"github.com/sclevine/spec/report"
+
+	. "github.com/onsi/gomega"
 )
 
 var buildpackInfo struct {
