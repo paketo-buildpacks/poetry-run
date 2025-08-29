@@ -1,3 +1,7 @@
+!integration/testdata
 .bin
 build
 .idea/
+linux
+darwin
+windows
