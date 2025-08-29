@@ -1,7 +1,8 @@
 # Poetry Run Cloud Native Buildpack
-## `gcr.io/paketo-buildpacks/poetry-run`
 
 The Paketo Poetry Run CNB sets the start command for a given [poetry](https://python-poetry.org/) application.
+
+The buildpack is published for consumption at `paketobuildpacks/poetry-run`.
 
 This buildpack detects when one of the following conditions is met:
 
