@@ -8,8 +8,6 @@ authors = []
 python = "^3.10"
 Flask = "^2.0.3"
 
-[tool.poetry.dev-dependencies]
-
 [tool.poetry.scripts]
 "my script" = "default_app.server:run"
 
